@@ -27,7 +27,7 @@
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
-
+static struct list blocked_list;
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -104,10 +104,10 @@ thread_init (void) {
 		.address = (uint64_t) gdt
 	};
 	lgdt (&gdt_ds);
-
 	/* Init the globla thread context */
 	lock_init (&tid_lock);
 	list_init (&ready_list);
+	list_init (&blocked_list);
 	list_init (&destruction_req);
 
 	/* Set up a thread structure for the running thread. */
@@ -161,6 +161,38 @@ thread_print_stats (void) {
 			idle_ticks, kernel_ticks, user_ticks);
 }
 
+void thread_sleep (int64_t localTicksOfThread) {
+	struct thread *curr = thread_current ();
+	enum intr_level old_level = intr_disable ();
+	//need to access  the caller thread - how ?  is the above the caller thread?
+	if (curr != idle_thread) {
+		curr ->status = THREAD_BLOCKED;
+		curr->localTicks = localTicksOfThread;
+		list_push_back (&blocked_list, &curr->elem);   //the current and the caller -  are they the same?
+		// schedule();   //here or inside the if statement?
+	}
+	schedule();
+	intr_set_level (old_level);
+}
+ 
+
+void thread_wakeUp(int64_t elapsed) {
+	enum intr_level old_level = intr_disable (); 
+	struct list_elem *thrd = list_begin(&blocked_list);
+	while (thrd!= list_end(&blocked_list)){
+		struct thread *t = list_entry(thrd,struct thread,elem);
+		if (t->localTicks<elapsed){
+			thrd = list_remove(thrd);
+			thread_unblock(t);
+			// t->status  = THREAD_READY;
+			// list_push_back (&ready_list, &t->elem);
+			// thrd = list_next(thrd);
+		}
+		else { 
+			thrd = list_next(thrd);
+			}
+		intr_set_level (old_level);
+}}
 /* Creates a new kernel thread named NAME with the given initial
    PRIORITY, which executes FUNCTION passing AUX as the argument,
    and adds it to the ready queue.  Returns the thread identifier
