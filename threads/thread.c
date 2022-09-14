@@ -168,7 +168,8 @@ void thread_sleep (int64_t localTicksOfThread) {
 	if (curr != idle_thread) {
 		curr ->status = THREAD_BLOCKED;
 		curr->localTicks = localTicksOfThread;
-		list_push_back (&blocked_list, &curr->elem);   //the current and the caller -  are they the same?
+		list_insert_ordered(&blocked_list, &curr->elem, priorityCmp, NULL );
+		// list_push_back (&blocked_list, &curr->elem);   //the current and the caller -  are they the same?
 		// schedule();   //here or inside the if statement?
 	}
 	schedule();
@@ -239,6 +240,8 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 	thread_unblock (t);
 
+	if (!list_empty(&ready_list)&&thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority ) thread_yield(); //or schedule
+
 	return tid;
 }
 
@@ -256,6 +259,12 @@ thread_block (void) {
 	schedule ();
 }
 
+bool 
+priorityCmp (struct list_elem *left, struct list_elem *right, void *aux UNUSED){
+    return list_entry (left, struct thread, elem)->priority > list_entry (right, struct thread, elem)->priority;
+}
+
+
 /* Transitions a blocked thread T to the ready-to-run state.
    This is an error if T is not blocked.  (Use thread_yield() to
    make the running thread ready.)
@@ -272,7 +281,8 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+	list_insert_ordered(&ready_list, &t->elem, priorityCmp, NULL );
+	// list_push_back (&ready_list, &t->elem);
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -335,7 +345,8 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
+		list_insert_ordered(&ready_list, &curr->elem, priorityCmp, 0 );
+		// list_push_back (&ready_list, &curr->elem);
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
@@ -344,7 +355,11 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
-}
+	// list_sort(&ready_list,priorityCmp , void *aux UNUSED);
+	if (!list_empty(&ready_list)&& thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority) thread_yield(); //or schedule
+	
+	list_sort(&ready_list,priorityCmp,NULL);
+}  
 
 /* Returns the current thread's priority. */
 int

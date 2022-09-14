@@ -132,7 +132,7 @@ const char *thread_name (void);
 
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
-
+bool priorityCmp (struct list_elem *left, struct list_elem *right, void *aux UNUSED);
 int thread_get_priority (void);
 void thread_set_priority (int);
 void thread_sleep(int64_t);
