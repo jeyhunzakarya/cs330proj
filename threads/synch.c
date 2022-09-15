@@ -257,7 +257,7 @@ cond_init (struct condition *cond) {
 }
 
 bool 
-priorityCmpForCond (struct list_elem *left, struct list_elem *right, void *aux UNUSED){
+priorityCmpForCond (struct list_elem *left, struct list_elem *right, void *a){
 	    return  list_entry(list_begin(&((&(list_entry (left, struct semaphore_elem, elem))->semaphore)->waiters)), struct thread,elem)->priority > list_entry(list_begin(&((&(list_entry (right, struct semaphore_elem, elem))->semaphore)->waiters)), struct thread,elem)->priority;
 }
 
@@ -292,7 +292,7 @@ cond_wait (struct condition *cond, struct lock *lock) {
 	ASSERT (lock_held_by_current_thread (lock));
 
 	sema_init (&waiter.semaphore, 0);
-	list_insert_ordered(&cond->waiters, &waiter.elem, priorityCmpForCond, 0 );
+	list_insert_ordered(&cond->waiters, &waiter.elem, priorityCmpForCond, NULL );
 	lock_release (lock);
 	sema_down (&waiter.semaphore);
 	lock_acquire (lock);

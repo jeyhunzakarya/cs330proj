@@ -191,7 +191,8 @@ void thread_wakeUp(int64_t elapsed) {
 			thrd = list_next(thrd);
 			}
 		intr_set_level (old_level);
-}}
+	}
+}
 /* Creates a new kernel thread named NAME with the given initial
    PRIORITY, which executes FUNCTION passing AUX as the argument,
    and adds it to the ready queue.  Returns the thread identifier
@@ -263,7 +264,7 @@ thread_block (void) {
 }
 
 bool 
-priorityCmp (struct list_elem *left, struct list_elem *right, void *aux UNUSED){
+priorityCmp (struct list_elem *left, struct list_elem *right, void *a){
     return list_entry (left, struct thread, elem)->priority > list_entry (right, struct thread, elem)->priority;
 }
 
@@ -358,7 +359,6 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
-	// list_sort(&ready_list,priorityCmp , void *aux UNUSED);
 	if (!list_empty(&ready_list)&& thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority) thread_yield(); //or schedule
 	list_sort(&ready_list,priorityCmp,NULL);
 }  
