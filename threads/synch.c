@@ -65,8 +65,8 @@ sema_down (struct semaphore *sema) {
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
+	list_sort(&sema->waiters,priorityCmp,0);   // is this necessary?
 	while (sema->value == 0) {
-		// list_push_back (&sema->waiters, &thread_current ()->elem);
 		list_insert_ordered(&sema->waiters, &thread_current ()->elem, priorityCmp,0 );
 		thread_block ();
 	}
@@ -108,10 +108,9 @@ sema_up (struct semaphore *sema) {
 	enum intr_level old_level;
 
 	ASSERT (sema != NULL);
-
+	list_sort(&sema->waiters,priorityCmp,0);   // is this necessary?
 	old_level = intr_disable ();
 	if (!list_empty (&sema->waiters)){
-		list_sort(&sema->waiters,priorityCmp,0);   // is this necessary?
 		thread_unblock (list_entry (list_pop_front (&sema->waiters),
 					struct thread, elem));
 	}   	
@@ -259,7 +258,7 @@ cond_init (struct condition *cond) {
 
 bool 
 priorityCmpForCond (struct list_elem *left, struct list_elem *right, void *aux UNUSED){
-	    return  list_entry(list_begin(list_entry (left, struct thread, elem)), struct thread,elem)->priority > list_entry(list_begin(list_entry (right, struct thread, elem)), struct thread,elem)->priority;
+	    return  list_entry(list_begin(&((&(list_entry (left, struct semaphore_elem, elem))->semaphore)->waiters)), struct thread,elem)->priority > list_entry(list_begin(&((&(list_entry (right, struct semaphore_elem, elem))->semaphore)->waiters)), struct thread,elem)->priority;
 }
 
 
@@ -294,7 +293,6 @@ cond_wait (struct condition *cond, struct lock *lock) {
 
 	sema_init (&waiter.semaphore, 0);
 	list_insert_ordered(&cond->waiters, &waiter.elem, priorityCmpForCond, 0 );
-	// list_push_back (&cond->waiters, &waiter.elem);
 	lock_release (lock);
 	sema_down (&waiter.semaphore);
 	lock_acquire (lock);
@@ -314,9 +312,9 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED) {
 	ASSERT (lock != NULL);
 	ASSERT (!intr_context ());
 	ASSERT (lock_held_by_current_thread (lock));
+	list_sort(&cond->waiters,priorityCmpForCond,NULL);
 
 	if (!list_empty (&cond->waiters)){
- 		list_sort(&cond->waiters,priorityCmpForCond,NULL);
 		sema_up (&list_entry (list_pop_front (&cond->waiters),
 		struct semaphore_elem, elem)->semaphore);}
 		changeCurrentRunning(); 

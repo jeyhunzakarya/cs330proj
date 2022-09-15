@@ -184,10 +184,8 @@ void thread_wakeUp(int64_t elapsed) {
 		struct thread *t = list_entry(thrd,struct thread,elem);
 		if (t->localTicks<elapsed){
 			thrd = list_remove(thrd);
-			thread_unblock(t);
-			// t->status  = THREAD_READY;
-			// list_push_back (&ready_list, &t->elem);
-			// thrd = list_next(thrd);
+			t->status  = THREAD_READY;
+			list_push_back (&ready_list, &t->elem);
 		}
 		else { 
 			thrd = list_next(thrd);
