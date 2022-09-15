@@ -130,6 +130,7 @@ struct thread *thread_current (void);
 tid_t thread_tid (void);
 const char *thread_name (void);
 
+void changeCurrentRunning (void);
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
 bool priorityCmp (struct list_elem *left, struct list_elem *right, void *aux UNUSED);

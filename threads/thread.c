@@ -245,6 +245,11 @@ thread_create (const char *name, int priority,
 	return tid;
 }
 
+
+void changeCurrentRunning () {
+	if (!list_empty(&ready_list)&&thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority ) thread_yield(); //or schedule
+}
+
 /* Puts the current thread to sleep.  It will not be scheduled
    again until awoken by thread_unblock().
 
@@ -357,7 +362,6 @@ thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
 	// list_sort(&ready_list,priorityCmp , void *aux UNUSED);
 	if (!list_empty(&ready_list)&& thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority) thread_yield(); //or schedule
-	
 	list_sort(&ready_list,priorityCmp,NULL);
 }  
 
