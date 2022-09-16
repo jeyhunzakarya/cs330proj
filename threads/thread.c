@@ -28,6 +28,7 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 static struct list blocked_list;
+static struct list listOfDonors;
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -104,10 +105,11 @@ thread_init (void) {
 		.address = (uint64_t) gdt
 	};
 	lgdt (&gdt_ds);
-	/* Init the globla thread context */
+	/* Init the global thread context */
 	lock_init (&tid_lock);
 	list_init (&ready_list);
 	list_init (&blocked_list);
+	list_init (&listOfDonors);
 	list_init (&destruction_req);
 
 	/* Set up a thread structure for the running thread. */
@@ -213,7 +215,7 @@ thread_create (const char *name, int priority,
 		thread_func *function, void *aux) {
 	struct thread *t;
 	tid_t tid;
-
+	// consider initializing default initial thread priority here
 	ASSERT (function != NULL);
 
 	/* Allocate thread. */
@@ -457,6 +459,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 	strlcpy (t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
+	t->defaultPriority = priority;
+	// try initializing these in thread_create
 	t->magic = THREAD_MAGIC;
 }
 
