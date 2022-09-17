@@ -197,6 +197,14 @@ lock_acquire (struct lock *lock) {
 		list_insert_ordered(&lock->holder->listOfDonors, &thread_current()->listElemCopy, priorityCmpForDonation, NULL );
 		if (thread_current()->priority> lock->holder->priority){
 			lock->holder->priority = thread_current()->priority;
+			struct thread *tparent = lock->holder;
+			while ( tparent && tparent->lockToWait) {
+				struct thread *tnext = tparent->lockToWait->holder;
+				if (tparent->priority > tnext->priority) {
+					tnext->priority = tparent->priority;
+				}
+				tparent = tparent->lockToWait->holder;
+			}
 		}
 	}
 	sema_down (&lock->semaphore);  //this function is responible for changing the current thread

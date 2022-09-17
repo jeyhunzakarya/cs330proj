@@ -163,13 +163,12 @@ thread_print_stats (void) {
 }
 
 void thread_sleep (int64_t localTicksOfThread) {
-	struct thread *curr = thread_current ();
 	enum intr_level old_level = intr_disable ();
 	//need to access  the caller thread - how ?  is the above the caller thread?
-	if (curr != idle_thread) {
-		curr ->status = THREAD_BLOCKED;
-		curr->localTicks = localTicksOfThread;
-		list_insert_ordered(&blocked_list, &curr->elem, priorityCmp, NULL );
+	if (thread_current() != idle_thread) {
+		thread_current()->localTicks = localTicksOfThread;
+		list_insert_ordered(&blocked_list, &thread_current()->elem, priorityCmp, NULL );
+		thread_current() ->status = THREAD_BLOCKED;
 	}
 	schedule();
 	intr_set_level (old_level);
@@ -180,15 +179,14 @@ void thread_wakeUp(int64_t elapsed) {
 	enum intr_level old_level = intr_disable (); 
 	struct list_elem *thrd = list_begin(&blocked_list);
 	while (thrd!= list_end(&blocked_list)){
-		struct thread *t = list_entry(thrd,struct thread,elem);
-		if (t->localTicks<=elapsed){
+		struct thread *thrdElem = list_entry(thrd,struct thread,elem);
+		if (thrdElem->localTicks<=elapsed){
 			thrd = list_remove(thrd);
-			t->status  = THREAD_READY;
-			list_push_back (&ready_list, &t->elem);
+			thrdElem->status  = THREAD_READY;
+			list_push_back (&ready_list, &thrdElem->elem);
 		}
 		else { 
-			thrd = list_next(thrd);
-			}
+			thrd = list_next(thrd);}
 		intr_set_level (old_level);
 	}
 }
