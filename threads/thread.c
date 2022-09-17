@@ -357,26 +357,14 @@ void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
 	thread_current ()->defaultPriority = new_priority;
-	// if( thread_current()->priority<list_entry(list_begin(&thread_current()->listOfDonors), struct thread,elem)->priority) {
-	// 	thread_current()->priority=list_entry(list_begin(&thread_current()->listOfDonors), struct thread,elem)->priority;
-	// }
-	// struct list_elem *thrd = list_begin(&thread_current()->listOfDonors);
-	// while (thrd!= list_end(&thread_current()->listOfDonors)){
-	// 	struct thread *t = list_entry(thrd,struct thread,elem);
-	// 	if (thread_current()->priority < t->priority){
-	// 		thread_current()->priority = t->priority;
-	// 		thrd = list_next(thrd);
-	// 	}
-	// }
-	struct thread *cur = thread_current ();
-	if (!list_empty (&cur->listOfDonors)) {
-		list_sort (&cur->listOfDonors, priorityCmpForDonation, 0);
-
-		struct thread *front = list_entry (list_front (&cur->listOfDonors), struct thread, listElemCopy);
-		if (front->priority > cur->priority)
-		cur->priority = front->priority;
+	struct list_elem *thrd = list_begin(&thread_current()->listOfDonors);
+	while (thrd!= list_end(&thread_current()->listOfDonors)){
+		struct thread *t = list_entry(thrd,struct thread,listElemCopy);
+		if (thread_current()->priority < t->priority){
+			thread_current()->priority = t->priority;
+			thrd = list_next(thrd);
+		}
 	}
-
 	if (!list_empty(&ready_list)&& thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority) thread_yield(); //or schedule
 	list_sort(&ready_list,priorityCmp,NULL);
 }  
