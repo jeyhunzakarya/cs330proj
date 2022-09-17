@@ -170,8 +170,6 @@ void thread_sleep (int64_t localTicksOfThread) {
 		curr ->status = THREAD_BLOCKED;
 		curr->localTicks = localTicksOfThread;
 		list_insert_ordered(&blocked_list, &curr->elem, priorityCmp, NULL );
-		// list_push_back (&blocked_list, &curr->elem);   //the current and the caller -  are they the same?
-		// schedule();   //here or inside the if statement?
 	}
 	schedule();
 	intr_set_level (old_level);
@@ -183,7 +181,7 @@ void thread_wakeUp(int64_t elapsed) {
 	struct list_elem *thrd = list_begin(&blocked_list);
 	while (thrd!= list_end(&blocked_list)){
 		struct thread *t = list_entry(thrd,struct thread,elem);
-		if (t->localTicks<elapsed){
+		if (t->localTicks<=elapsed){
 			thrd = list_remove(thrd);
 			t->status  = THREAD_READY;
 			list_push_back (&ready_list, &t->elem);
