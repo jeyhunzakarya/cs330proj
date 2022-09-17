@@ -94,6 +94,8 @@ struct thread {
 	int64_t localTicks; 
 	struct list listOfDonors;
 	int defaultPriority;
+	struct lock *lockToWait;
+	struct list_elem listElemCopy;               /* List element. */
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 

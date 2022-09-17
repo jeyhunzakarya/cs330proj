@@ -192,16 +192,22 @@ lock_acquire (struct lock *lock) {
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
 
-	// if (lock->holder){ 
-	// 	// if (lock->holder->priority <list_entry(list_begin(&((&lock->semaphore)->waiters)), struct thread,elem)->priority)
-	// 	// lock->holder->priority = list_entry(list_begin(&((&lock->semaphore)->waiters)), struct thread,elem)->priority;
-	// if (thread_current()->priority> lock->holder->priority){
-	// 	lock->holder->priority = thread_current()->priority;
-	// }
-	// 	}
-	// sema_down (&lock->semaphore);  //this function is responible for changing the current thread
+	if (lock->holder){
+		thread_current()->lockToWait = lock; 
+		list_insert_ordered(&lock->holder->listOfDonors, &thread_current()->listElemCopy, priorityCmpForDonation, NULL );
+		if (thread_current()->priority> lock->holder->priority){
+			lock->holder->priority = thread_current()->priority;
+		}
+	}
+	sema_down (&lock->semaphore);  //this function is responible for changing the current thread
+	thread_current()->lockToWait = NULL;
 	lock->holder = thread_current ();
 	//can use lock-holder in the future
+}
+
+bool 
+priorityCmpForDonation (struct list_elem *left, struct list_elem *right, void *a){
+	return list_entry (left, struct thread, listElemCopy)->priority > list_entry (right, struct thread, listElemCopy)->priority;
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -233,7 +239,30 @@ void
 lock_release (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
-	// thread_current()->priority = thread_current()->defaultPriority;
+	struct thread *threadCurrent = thread_current ();
+	if (!list_empty(&threadCurrent->listOfDonors)){
+		struct list_elem *thrd = list_begin(&threadCurrent->listOfDonors);
+		while (thrd!= list_end(&threadCurrent->listOfDonors)){
+			struct thread *t = list_entry(thrd,struct thread,listElemCopy);
+			if (t->lockToWait == lock){
+				list_remove(&t->listElemCopy);
+			}
+		thrd = list_next(thrd);
+		}
+	}
+
+	thread_current()->priority = thread_current()->defaultPriority;
+	list_sort (&thread_current()->listOfDonors, priorityCmpForDonation, 0);
+	if (!list_empty(&threadCurrent->listOfDonors)){
+		struct list_elem *thrd1 = list_begin(&thread_current()->listOfDonors);
+		while (thrd1!= list_end(&thread_current()->listOfDonors)){
+			struct thread *t = list_entry(thrd1,struct thread,listElemCopy);
+			if (thread_current()->priority < t->priority){
+				thread_current()->priority = t->priority;
+			}
+			thrd1 = list_next(thrd1);
+		}	
+	}
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
 }

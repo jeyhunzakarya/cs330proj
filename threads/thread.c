@@ -28,7 +28,7 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 static struct list blocked_list;
-static struct list listOfDonors;
+// static struct list listOfDonors;
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -109,7 +109,6 @@ thread_init (void) {
 	lock_init (&tid_lock);
 	list_init (&ready_list);
 	list_init (&blocked_list);
-	list_init (&listOfDonors);
 	list_init (&destruction_req);
 
 	/* Set up a thread structure for the running thread. */
@@ -293,7 +292,7 @@ thread_unblock (struct thread *t) {
 	intr_set_level (old_level);
 }
 
-/* Returns the name of the running thread. */
+/* Returns the name of the Flist_ running thread. */
 const char *
 thread_name (void) {
 	return thread_current ()->name;
@@ -361,6 +360,27 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	thread_current ()->defaultPriority = new_priority;
+	// if( thread_current()->priority<list_entry(list_begin(&thread_current()->listOfDonors), struct thread,elem)->priority) {
+	// 	thread_current()->priority=list_entry(list_begin(&thread_current()->listOfDonors), struct thread,elem)->priority;
+	// }
+	// struct list_elem *thrd = list_begin(&thread_current()->listOfDonors);
+	// while (thrd!= list_end(&thread_current()->listOfDonors)){
+	// 	struct thread *t = list_entry(thrd,struct thread,elem);
+	// 	if (thread_current()->priority < t->priority){
+	// 		thread_current()->priority = t->priority;
+	// 		thrd = list_next(thrd);
+	// 	}
+	// }
+	struct thread *cur = thread_current ();
+	if (!list_empty (&cur->listOfDonors)) {
+		list_sort (&cur->listOfDonors, priorityCmpForDonation, 0);
+
+		struct thread *front = list_entry (list_front (&cur->listOfDonors), struct thread, listElemCopy);
+		if (front->priority > cur->priority)
+		cur->priority = front->priority;
+	}
+
 	if (!list_empty(&ready_list)&& thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority) thread_yield(); //or schedule
 	list_sort(&ready_list,priorityCmp,NULL);
 }  
@@ -460,6 +480,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->defaultPriority = priority;
+	t->lockToWait = NULL;
+	list_init (&t->listOfDonors);
 	// try initializing these in thread_create
 	t->magic = THREAD_MAGIC;
 }
