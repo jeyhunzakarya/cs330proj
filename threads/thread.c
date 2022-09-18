@@ -235,16 +235,16 @@ thread_create (const char *name, int priority,
 
 	/* Add to run queue. */
 	thread_unblock (t);
-//change this
-	if (!list_empty(&ready_list)&&thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority ) thread_yield(); //or schedule
-
+	if (comparePriority()) thread_yield();
 	return tid;
 }
 
+bool comparePriority(void) {
+	return (list_entry(list_front(&ready_list), struct thread, elem)->priority >thread_get_priority());
+}
 
-//change this
-void changeCurrentRunning () {
-	if (!list_empty(&ready_list)&&thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority ) thread_yield(); //or schedule
+bool comparePriorityAndNotEmpty () {
+	return (!list_empty(&ready_list)&&comparePriority()); //or schedule
 }
 
 /* Puts the current thread to sleep.  It will not be scheduled
@@ -366,8 +366,7 @@ thread_set_priority (int new_priority) {
 		}
 	}
 
-	//change this
-	if (!list_empty(&ready_list)&& thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority) thread_yield(); //or schedule
+	if (!list_empty(&ready_list)&& comparePriority()) thread_yield(); //or schedule
 	list_sort(&ready_list,priorityCmp,NULL);
 }  
 
