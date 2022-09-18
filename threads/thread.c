@@ -235,13 +235,14 @@ thread_create (const char *name, int priority,
 
 	/* Add to run queue. */
 	thread_unblock (t);
-
+//change this
 	if (!list_empty(&ready_list)&&thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority ) thread_yield(); //or schedule
 
 	return tid;
 }
 
 
+//change this
 void changeCurrentRunning () {
 	if (!list_empty(&ready_list)&&thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority ) thread_yield(); //or schedule
 }
@@ -346,8 +347,7 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_insert_ordered(&ready_list, &curr->elem, priorityCmp, 0 );
-		// list_push_back (&ready_list, &curr->elem);
+		list_insert_ordered(&ready_list, &curr->elem, priorityCmp, NULL );
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
@@ -365,6 +365,8 @@ thread_set_priority (int new_priority) {
 			thrd = list_next(thrd);
 		}
 	}
+
+	//change this
 	if (!list_empty(&ready_list)&& thread_get_priority()< list_entry(list_front(&ready_list), struct thread, elem)->priority) thread_yield(); //or schedule
 	list_sort(&ready_list,priorityCmp,NULL);
 }  

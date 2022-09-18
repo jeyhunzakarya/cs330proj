@@ -65,9 +65,9 @@ sema_down (struct semaphore *sema) {
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
-	list_sort(&sema->waiters,priorityCmp,0);   // is this necessary?
+	list_sort(&sema->waiters,priorityCmp,NULL);   // is this necessary?
 	while (sema->value == 0) {
-		list_insert_ordered(&sema->waiters, &thread_current ()->elem, priorityCmp,0 );
+		list_insert_ordered(&sema->waiters, &thread_current ()->elem, priorityCmp,NULL );
 		thread_block ();
 	}
 	sema->value--;
@@ -108,7 +108,7 @@ sema_up (struct semaphore *sema) {
 	enum intr_level old_level;
 
 	ASSERT (sema != NULL);
-	list_sort(&sema->waiters,priorityCmp,0);   // is this necessary?
+	list_sort(&sema->waiters,priorityCmp,NULL);   // is this necessary?
 	old_level = intr_disable ();
 	if (!list_empty (&sema->waiters)){
 		thread_unblock (list_entry (list_pop_front (&sema->waiters),
@@ -116,7 +116,6 @@ sema_up (struct semaphore *sema) {
 	}   	
 	sema->value++;
 	changeCurrentRunning();
-	// if (!list_empty(&sema->waiters)&& thread_get_priority()< list_entry(list_front(&sema->waiters), struct thread, elem)->priority) thread_yield(); //or schedule
 	intr_set_level (old_level);
 }
 
@@ -358,8 +357,6 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED) {
 		sema_up (&list_entry (list_pop_front (&cond->waiters),
 		struct semaphore_elem, elem)->semaphore);}
 		changeCurrentRunning(); 
-	// if (!list_empty(&cond->waiters)&& thread_get_priority()< list_entry(list_front(&cond->waiters), struct thread, elem)->priority) thread_yield(); //or schedule
- 	// list_sort(&cond->waiters,priorityCmp,NULL);
 }
 
 /* Wakes up all threads, if any, waiting on COND (protected by
