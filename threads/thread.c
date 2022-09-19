@@ -14,6 +14,7 @@
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
+int load_avg = 0;
 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
@@ -355,19 +356,20 @@ thread_yield (void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
-	thread_current ()->defaultPriority = new_priority;
-	struct list_elem *thrd = list_begin(&thread_current()->listOfDonors);
-	while (thrd!= list_end(&thread_current()->listOfDonors)){
-		struct thread *t = list_entry(thrd,struct thread,listElemCopy);
-		if (thread_current()->priority < t->priority){
-			thread_current()->priority = t->priority;
-			thrd = list_next(thrd);
+	if (!thread_mlfqs) 
+	{	thread_current ()->priority = new_priority;
+		thread_current ()->defaultPriority = new_priority;
+		struct list_elem *thrd = list_begin(&thread_current()->listOfDonors);
+		while (thrd!= list_end(&thread_current()->listOfDonors)){
+			struct thread *t = list_entry(thrd,struct thread,listElemCopy);
+			if (thread_current()->priority < t->priority){
+				thread_current()->priority = t->priority;
+				thrd = list_next(thrd);
+			}
 		}
-	}
 
-	if (!list_empty(&ready_list)&& comparePriority()) thread_yield(); //or schedule
-	list_sort(&ready_list,priorityCmp,NULL);
+		if (!list_empty(&ready_list)&& comparePriority()) thread_yield(); //or schedule
+		list_sort(&ready_list,priorityCmp,NULL);}
 }  
 
 /* Returns the current thread's priority. */
@@ -466,6 +468,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->priority = priority;
 	t->defaultPriority = priority;
 	t->lockToWait = NULL;
+	t->recent_cpu =0 ;
+	t->nice =0 ;
 	list_init (&t->listOfDonors);
 	// try initializing these in thread_create
 	t->magic = THREAD_MAGIC;
@@ -648,3 +652,74 @@ allocate_tid (void) {
 
 	return tid;
 }
+
+///arithmetic operations + helper funcs
+
+struct list listOfAll( ) {
+	static struct list allThreads;
+	enum intr_level old_level = intr_disable ();
+	struct list_elem *thrd = list_begin(&ready_list);
+	while (thrd!= list_end(&ready_list)){
+		struct thread *thrdElem = list_entry(thrd,struct thread,elem);
+		list_insert_ordered(&allThreads, &thrdElem->elem, priorityCmp, NULL );
+	}
+
+	struct list_elem *thrd1 = list_begin(&blocked_list);
+	while (thrd1!= list_end(&blocked_list)){
+		struct thread *thrdElem = list_entry(thrd1,struct thread,elem);
+			list_insert_ordered(&allThreads, &thrdElem->elem, priorityCmp, NULL );
+	}
+	list_insert_ordered(&allThreads, &thread_current()->elem, priorityCmp, NULL );
+
+	intr_set_level (old_level);
+	return allThreads;
+}
+
+int calcListSize (void) {
+	return list_size(&ready_list);}
+
+#define f (1 << 14)
+int toFixed (int n) {
+	return n*f;
+}
+
+int toIntLower (x) {
+	return x/f ;
+}
+
+int toIntHigher(x) {
+	return (x>=0)?(x + f/2) : (x - f/2)  ;
+}
+
+int addFixed (int x, int y) { 
+	return x + y ;
+}
+
+int subtractFixed (int x, int y) {
+	return x-y;
+}
+
+int addFixedPointAndInt(int x, int n) {
+	return x +n*f ;
+}
+
+int subtractFixedPointAndInt(int x, int n) {
+	return x - n*f ;
+}
+
+int multiplyFloat (int x, int y) { 
+	return ((int64_t) x) *y/f ;
+}
+
+int multiplyIntAndFloating (int x, int n) { 
+	return x*n ;
+}
+
+int divideFixed (int x, int y) { 
+	return ((int64_t) x) /y*f ;
+}
+
+int divideIntByFixed (int x, int n) { 
+	return x/n ;
+}
+

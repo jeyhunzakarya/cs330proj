@@ -124,6 +124,10 @@ timer_print_stats (void) {
 static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
+	if (ticks%100 ==0 ) {   //might need to use timer_ticks here, also can modify the below arith a bit
+		load_avg =addFixed (multiplyFloat(divideFixed(toFixed(59),toFixed(60)), load_avg ), multiplyIntAndFloating(divideFixed(1,60),calcListSize())) ;
+	}
+
 	thread_tick ();
 	thread_wakeUp(ticks);
 }

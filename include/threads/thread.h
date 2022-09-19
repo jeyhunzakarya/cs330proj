@@ -9,7 +9,7 @@
 #include "vm/vm.h"
 #endif
 
-
+int load_avg;
 /* States in a thread's life cycle. */
 enum thread_status {
 	THREAD_RUNNING,     /* Running thread. */
@@ -17,6 +17,7 @@ enum thread_status {
 	THREAD_BLOCKED,     /* Waiting for an event to trigger. */
 	THREAD_DYING        /* About to be destroyed. */
 };
+
 
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
@@ -88,6 +89,9 @@ typedef int tid_t;
 struct thread {
 	/* Owned by thread.c. */
 	tid_t tid;                          /* Thread identifier. */
+	int nice;
+	int recent_cpu;
+	
 	enum thread_status status;          /* Thread state. */
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* Priority. */
@@ -147,6 +151,31 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
+int toFixed (int n) ;
+
+int toIntLower (x) ;
+
+int toIntHigher(x) ;
+
+int addFixed (int x, int y) ;
+
+int subtractFixed (int x, int y) ;
+
+int addFixedPointAndInt(int x, int n) ;
+
+int subtractFixedPointAndInt(int x, int n) ;
+
+int multiplyFloat (int x, int y) ;
+
+int multiplyIntAndFloating (int x, int n) ;
+
+int divideFixed (int x, int y);
+
+int divideIntByFixed (int x, int n);
+
+int calcListSize (void);
+
+struct list listOfAll( void);
 void do_iret (struct intr_frame *tf);
 
 #endif /* threads/thread.h */
