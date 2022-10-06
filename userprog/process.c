@@ -91,6 +91,8 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	void *newpage;
 	bool writable;
 
+
+
 	/* 1. TODO: If the parent_page is kernel page, then return immediately. */
 
 	/* 2. Resolve VA from the parent's page map level 4. */
@@ -143,6 +145,8 @@ __do_fork (void *aux) {
 		goto error;
 #endif
 
+
+
 	/* TODO: Your code goes here.
 	 * TODO: Hint) To duplicate the file object, use `file_duplicate`
 	 * TODO:       in include/filesys/file.h. Note that parent should not return
@@ -163,32 +167,93 @@ error:
 int
 process_exec (void *f_name) {
 	char *file_name = f_name;
-	bool success;
+    bool success;
+    struct thread *cur = thread_current();
 
-	/* We cannot use the intr_frame in the thread structure.
-	 * This is because when current thread rescheduled,
-	 * it stores the execution information to the member. */
-	struct intr_frame _if;
-	_if.ds = _if.es = _if.ss = SEL_UDSEG;
-	_if.cs = SEL_UCSEG;
-	_if.eflags = FLAG_IF | FLAG_MBS;
+    //intr_frame 권한설정
+    struct intr_frame _if;
+    _if.ds = _if.es = _if.ss = SEL_UDSEG;
+    _if.cs = SEL_UCSEG;
+    _if.eflags = FLAG_IF | FLAG_MBS;
 
-	/* We first kill the current context */
-	process_cleanup ();
+    /* We first kill the current context */
+    process_cleanup();
 
-	/* And then load the binary */
-	success = load (file_name, &_if);
+    // for argument parsing
+    char *argv[64]; // argument 배열
+    int argc = 0;    // argument 개수
 
-	/* If load failed, quit. */
-	palloc_free_page (file_name);
-	if (!success)
-		return -1;
+    char *token;    
+    char *save_ptr; // 분리된 문자열 중 남는 부분의 시작주소
+    token = strtok_r(file_name, " ", &save_ptr);
+    while (token != NULL)
+    {
+        argv[argc] = token;
+        token = strtok_r(NULL, " ", &save_ptr);
+        argc++;
+    }
 
-	/* Start switched process. */
-	do_iret (&_if);
-	NOT_REACHED ();
+   /* And then load the binary */
+    success = load(file_name, &_if);
+
+    /* If load failed, quit. */
+    if (!success)
+    {
+        palloc_free_page(file_name);
+        return -1;
+    }
+
+    void **rspp = &_if.rsp;
+    argument_stack(argv, argc, rspp);
+    _if.R.rdi = argc;
+    _if.R.rsi = (uint64_t)*rspp + sizeof(void *);
+
+    hex_dump(_if.rsp, _if.rsp, USER_STACK - (uint64_t)*rspp, true);
+
+    palloc_free_page(file_name);
+	printf("reached");
+    /* Start switched process. */
+    do_iret(&_if);
+    NOT_REACHED();
 }
 
+void argument_stack(char **argv, int argc, void **rsp)
+{
+    // Save argument strings (character by character)
+    for (int i = argc - 1; i >= 0; i--)
+    {
+        int argv_len = strlen(argv[i]);
+        for (int j = argv_len; j >= 0; j--)
+        {
+            char argv_char = argv[i][j];
+            (*rsp)--;
+            **(char **)rsp = argv_char; 
+        }
+        argv[i] = *(char **)rsp;
+    }
+
+    // Word-align padding
+    int pad = (int)*rsp % 8;
+    for (int k = 0; k < pad; k++)
+    {
+        (*rsp)--;
+        **(uint8_t **)rsp = 0;
+    }
+
+    // Pointers to the argument strings
+    (*rsp) -= 8;
+    **(char ***)rsp = 0;
+
+    for (int i = argc - 1; i >= 0; i--)
+    {
+        (*rsp) -= 8;
+        **(char ***)rsp = argv[i];
+    }
+
+    // Return address
+    (*rsp) -= 8;
+    **(void ***)rsp = 0;
+}
 
 /* Waits for thread TID to die and returns its exit status.  If
  * it was terminated by the kernel (i.e. killed due to an
@@ -204,6 +269,9 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	for(int i = 0; i<10000000000;i++){
+
+	}
 	return -1;
 }
 
@@ -215,6 +283,8 @@ process_exit (void) {
 	 * TODO: Implement process termination message (see
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
+
+
 
 	process_cleanup ();
 }
@@ -405,6 +475,8 @@ load (const char *file_name, struct intr_frame *if_) {
 					goto done;
 				break;
 		}
+
+
 	}
 
 	/* Set up stack. */
