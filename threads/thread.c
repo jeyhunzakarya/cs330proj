@@ -234,10 +234,18 @@ thread_create (const char *name, int priority,
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
 
-	/* Add to run queue. */
+	t->file_descriptor_table = palloc_get_multiple(PAL_ZERO, FDT_PAGES);
+	if (t->file_descriptor_table == NULL) return TID_ERROR;
+	else 
+	{
+	t->file_descriptor_table[0] = 1;
+	t->file_descriptor_table[1] = 2;
+	t->fdidx = 2;
+	struct thread *curr = thread_current();
+	list_push_back(&curr->child_list, &t->child_elem);
 	thread_unblock (t);
 	if (comparePriority()) thread_yield();
-	return tid;
+	return tid;}
 }
 
 bool comparePriority(void) {
@@ -452,7 +460,11 @@ kernel_thread (thread_func *function, void *aux) {
 	thread_exit ();       /* If function() returns, kill the thread. */
 }
 
-
+void sema_init2(struct thread *t){
+	sema_init(&t->fork_sema,0);
+	sema_init(&t->wait_sema,0);
+	sema_init(&t->free_sema,0);
+}
 /* Does basic initialization of T as a blocked thread named
    NAME. */
 static void
@@ -463,6 +475,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 
 	memset (t, 0, sizeof *t);
 	t->status = THREAD_BLOCKED;
+	sema_init2(t);
 	strlcpy (t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
@@ -471,8 +484,10 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->recent_cpu =0 ;
 	t->nice =0 ;
 	list_init (&t->listOfDonors);
+	list_init(&t->child_list);
 	// try initializing these in thread_create
 	t->magic = THREAD_MAGIC;
+	t->running = NULL;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -652,8 +667,6 @@ allocate_tid (void) {
 
 	return tid;
 }
-
-///arithmetic operations + helper funcs
 
 struct list listOfAll( ) {
 	static struct list allThreads;

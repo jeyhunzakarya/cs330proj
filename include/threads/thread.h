@@ -1,10 +1,14 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
+#define FDT_PAGES 3
+#define FDCOUNT_LIMIT FDT_PAGES *(1<<9) // limit fdidx
 
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include "threads/synch.h"
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -114,13 +118,24 @@ struct thread {
 
 	/* Owned by thread.c. */
 	struct intr_frame tf;               /* Information for switching */
-	unsigned magic;                     /* Detects stack overflow. */
+	unsigned magic;
+	int exit_status; // exit(), wait() 구현 때 사용
+	struct file **file_descriptor_table; // FDF
+	int fdidx; // fd idx                  /* Detects stack overflow. */
+	struct semaphore free_sema;
+	struct semaphore wait_sema;
+	struct file *running;
+	struct semaphore fork_sema;
+	struct list child_list;
+	struct list_elem child_elem; 	// _fork(), wait() 구현 때 사용
+	struct intr_frame parent_if;	// _fork() 구현 때 사용, __do_fork() 함수
 };
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
+void sema_init2(struct thread *t);
 
 void thread_init (void);
 void thread_start (void);

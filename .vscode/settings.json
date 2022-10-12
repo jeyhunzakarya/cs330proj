@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "asa": "sadas",
+        "process.h": "c",
+        "vm.h": "c",
+        "interrupt.h": "c",
+        "stdint.h": "c",
+        "debug.h": "c",
+        "*.inc": "c",
+        "string_view": "c"
+    }
+}
