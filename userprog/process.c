@@ -192,7 +192,7 @@ process_exec (void *f_name) {
    /* We first kill the current context */
    process_cleanup ();
    /* And then load the binary */
-	success = load (file_name, &_if); // file_name, _if를 현재 프로세스에 load.
+	success = load (file_name, &_if);
 	if (success){
 	/* Start switched process. */
 		do_iret (&_if);

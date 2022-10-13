@@ -119,7 +119,7 @@ struct thread {
 	/* Owned by thread.c. */
 	struct intr_frame tf;               /* Information for switching */
 	unsigned magic;
-	int exit_status; // exit(), wait() 구현 때 사용
+	int exit_status; 
 	struct file **file_descriptor_table; // FDF
 	int fdidx; // fd idx                  /* Detects stack overflow. */
 	struct semaphore free_sema;
@@ -127,8 +127,8 @@ struct thread {
 	struct file *running;
 	struct semaphore fork_sema;
 	struct list child_list;
-	struct list_elem child_elem; 	// _fork(), wait() 구현 때 사용
-	struct intr_frame parent_if;	// _fork() 구현 때 사용, __do_fork() 함수
+	struct list_elem child_elem;
+	struct intr_frame parent_if;
 };
 
 /* If false (default), use round-robin scheduler.
